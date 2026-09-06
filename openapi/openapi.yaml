@@ -1,0 +1,54 @@
+openapi: 3.0.3
+
+info:
+  title: Marketplace API
+  version: 1.0.0
+  description: API for an Allegro-like marketplace with products, orders, payments, and inventory control.
+
+servers:
+  - url: http://localhost:3000
+    description: Local development server
+
+security: []
+
+paths:
+  /products:
+    get:
+      operationId: listProducts
+      summary: List products
+      responses:
+        '200':
+          description: Product list returned successfully
+
+  /products/{product_id}:
+    get:
+      operationId: getProductById
+      summary: Get product by id
+      responses:
+        '200':
+          description: Product returned successfully
+
+  /orders:
+    get:
+      operationId: listOrders
+      summary: List orders
+      responses:
+        '200':
+          description: Order list returned successfully
+    post:
+      operationId: createOrder
+      summary: Create order
+      responses:
+        '201':
+          description: Order created successfully
+
+  /orders/{order_id}:
+    get:
+      operationId: getOrderById
+      summary: Get order by id
+      responses:
+        '200':
+          description: Order returned successfully
+
+components:
+  schemas: {}
