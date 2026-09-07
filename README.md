@@ -66,3 +66,29 @@ I am not adding a message broker immediately. The first async step will be an ou
 I am not adding Elasticsearch/OpenSearch at the start. Product search can begin with PostgreSQL filters and indexes; a separate search service only makes sense when search requirements become more complex.
 
 I am not supporting multiple warehouses per product in the first version. Each product will have one inventory record, which is enough to practice stock reservation and overselling prevention.
+
+## 5. Contract testing
+
+Обрано варіант А — consumer-driven contract testing with Pact.
+
+Тест `consumer.pact.test.mjs` перевіряє взаємодію `GET /orders/1` між
+консюмером `marketplace-web` і провайдером `marketplace-api`. Після успішного
+запуску Pact створює контракт у теці `pacts/`.
+
+Встановлення залежностей:
+
+```bash
+npm install
+```
+
+Запуск контрактного тесту:
+
+```bash
+npm run contract:test
+```
+
+Перевірка створеного Pact-контракту:
+
+```bash
+ls pacts/*.json
+```
