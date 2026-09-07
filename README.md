@@ -92,3 +92,17 @@ npm run contract:test
 ```bash
 ls pacts/*.json
 ```
+
+## 6. OpenAPI validation
+
+Перевірка OpenAPI-спеки:
+
+```bash
+npx @redocly/cli lint openapi/openapi.yaml
+```
+
+Створення об'єднаної JSON-спеки:
+
+```bash
+npx @redocly/cli bundle openapi/openapi.yaml -o spec.json
+```
