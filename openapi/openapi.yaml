@@ -39,6 +39,12 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/ProductListResponse"
+        "400":
+          description: Invalid pagination params
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
 
   /products/{product_id}:
     get:
@@ -54,6 +60,16 @@ paths:
       responses:
         "200":
           description: Product returned successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product
+        "404":
+          description: Product not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
 
   /orders:
     get:
@@ -62,6 +78,16 @@ paths:
       responses:
         "200":
           description: Order list returned successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderListResponse"
+        "400":
+          description: Invalid pagination params
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
     post:
       operationId: createOrder
       summary: Create order
@@ -84,6 +110,24 @@ paths:
       responses:
         "201":
           description: Order created successfully
+        "400":
+          description: Invalid body or missing Idempotency-Key
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Not enough inventory
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "422":
+          description: Same Idempotency-Key with different body
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
 
   /orders/{order_id}:
     get:
@@ -99,6 +143,16 @@ paths:
       responses:
         "200":
           description: Order returned successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order
+        "404":
+          description: Order not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
 
 components:
   schemas:
@@ -204,3 +258,39 @@ components:
           type: string
           nullable: true
           description: Opaque token for the next page. Null means there are no more pages.
+
+    OrderListResponse:
+      type: object
+      required:
+        - items
+        - next_cursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Order"
+        next_cursor:
+          type: string
+          nullable: true
+          description: Opaque token for the next page. Null means there are no more pages.
+
+    Problem:
+      type: object
+      required:
+        - type
+        - title
+        - status
+        - detail
+        - instance
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
