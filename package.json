@@ -4,13 +4,14 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "contract:test": "node --test consumer.pact.test.mjs"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
-  "dependencies": {
+  "devDependencies": {
+    "@pact-foundation/pact": "^17.1.4",
     "@redocly/cli": "^2.51.2"
   }
 }
