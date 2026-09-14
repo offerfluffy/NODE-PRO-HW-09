@@ -1,6 +1,6 @@
 import { Controller, Get } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Env } from './env.schema';
+import { Env } from './config/env.schema';
 
 @Controller()
 export class AppController {

@@ -12,13 +12,13 @@ const extra = fileKeys.filter((k) => !schemaKeys.includes(k));
 
 if (missing.length || extra.length) {
   if (missing.length)
-    console.error(`✗ Нема в .env.example: ${missing.join(', ')}`);
+    console.error(`✗ Doesn't exist in .env.example: ${missing.join(', ')}`);
   if (extra.length)
     console.error(
-      `✗ Зайве у .env.example (у схемі відсутнє): ${extra.join(', ')}`,
+      `✗ Not necessart in .env.example (abcent in shcema): ${extra.join(', ')}`,
     );
   process.exit(1);
 }
 console.log(
-  `✓ .env.example синхронний зі схемою (${schemaKeys.length} змінних)`,
+  `✓ .env.example in sync with schema (${schemaKeys.length} variables)`,
 );
