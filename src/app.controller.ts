@@ -14,7 +14,7 @@ export class AppController {
   health() {
     return { status: 'ok', uptimeSec: Math.round(process.uptime()) };
   }
-  @Get('database')
+  @Get('db')
   checkConnection() {
     return this.database.checkConnection();
   }
