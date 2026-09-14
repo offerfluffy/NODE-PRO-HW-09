@@ -1,14 +1,22 @@
 import { Controller, Get } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Env } from './config/env.schema';
+import { DatabaseService } from './database/database.service';
 
 @Controller()
 export class AppController {
-  constructor(private readonly config: ConfigService<Env, true>) {}
+  constructor(
+    private readonly config: ConfigService<Env, true>,
+    private readonly database: DatabaseService,
+  ) {}
 
   @Get('health')
   health() {
     return { status: 'ok', uptimeSec: Math.round(process.uptime()) };
+  }
+  @Get('database')
+  checkConnection() {
+    return this.database.checkConnection();
   }
 
   @Get('config')

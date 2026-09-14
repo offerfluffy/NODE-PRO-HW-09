@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { parse } from 'dotenv';
-import { envSchema } from '../dist/env.schema.js';
+import { envSchema } from '../dist/config/env.schema.js';
 
 const schemaKeys = Object.keys(envSchema.shape).sort();
 const fileKeys = Object.keys(
