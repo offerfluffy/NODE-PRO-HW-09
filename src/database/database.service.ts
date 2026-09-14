@@ -31,7 +31,8 @@ export class DatabaseService implements OnApplicationShutdown {
     });
 
     this.pool.on('error', (e) => {
-      Logger.log('server closed idle-connection');
+      const code = (e as Error & { code?: string }).code ?? 'unknown';
+      Logger.log(`server closed idle-connection (code: ${code})`);
     });
   }
   async checkConnection() {
