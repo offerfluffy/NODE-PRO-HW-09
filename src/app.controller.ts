@@ -1,12 +1,25 @@
 import { Controller, Get } from '@nestjs/common';
-import { AppService } from './app.service';
+import { ConfigService } from '@nestjs/config';
+import { Env } from './env.schema';
 
 @Controller()
 export class AppController {
-  constructor(private readonly appService: AppService) {}
+  constructor(private readonly config: ConfigService<Env, true>) {}
 
-  @Get()
-  getHello(): string {
-    return this.appService.getHello();
+  @Get('health')
+  health() {
+    return { status: 'ok', uptimeSec: Math.round(process.uptime()) };
+  }
+
+  @Get('config')
+  showConfig() {
+    const dbUrl = new URL(this.config.get('DB_URL', { infer: true }));
+    return {
+      port: this.config.get('PORT', { infer: true }),
+      logLevel: this.config.get('LOG_LEVEL', { infer: true }),
+      timeoutMs: this.config.get('TIMEOUT_MS', { infer: true }),
+      dbHost: dbUrl.host,
+      dbUser: dbUrl.username,
+    };
   }
 }
