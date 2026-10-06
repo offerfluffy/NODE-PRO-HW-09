@@ -192,3 +192,10 @@
 ### Explanation
 
 `idx_products_search_vector` replaced the catalog sequential scan with a GIN-backed bitmap index scan. Execution time fell from 12.979 ms to 1.783 ms (about 7.3x), while shared buffers fell from 4,738 to 1,013. The rank sort remains because GIN does not store `ts_rank` order.
+
+## Морфологія
+
+- `кросівки`: 1000 збігів
+- `кросівок`: 400 збігів
+
+Конфігурація `simple` не виконує український стемінг або лематизацію, тому різні відмінкові форми зберігаються як окремі лексеми.
