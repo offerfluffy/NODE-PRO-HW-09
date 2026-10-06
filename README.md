@@ -190,3 +190,20 @@ npx @redocly/cli bundle openapi/openapi.yaml -o spec.json
 printf '%s' 'app-v1-password' > secrets/db_password
 docker compose up -d
 ```
+
+## 8. PostgreSQL optimization homework
+
+Підняти PostgreSQL зі свіжого клону:
+
+```bash
+docker compose up -d --wait
+```
+
+Підключитися до PostgreSQL:
+
+```bash
+docker compose exec db psql -U admin -d shop
+```
+
+- Main table: `orders` (100,000 rows)
+- Search table: `products` (100,000 rows)
