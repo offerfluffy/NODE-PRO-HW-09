@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import 'dotenv/config';
 import { DataSource } from 'typeorm';
 import { User } from './entities/user.entity';
 import { Product } from './entities/product.entity';
