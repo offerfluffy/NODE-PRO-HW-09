@@ -22,7 +22,8 @@
     "migration:generate": "npm run build --silent && typeorm migration:generate src/database/migrations/InitialSchema -d dist/database/data-source.js",
     "migrate": "npm run build --silent && typeorm migration:run -d dist/database/data-source.js",
     "migrate:show": "npm run build --silent && typeorm migration:show -d dist/database/data-source.js",
-    "migrate:revert": "npm run build --silent && typeorm migration:revert -d dist/database/data-source.js"
+    "migrate:revert": "npm run build --silent && typeorm migration:revert -d dist/database/data-source.js",
+    "seed": "npm run build --silent && node dist/database/seed/main.js"
   },
   "keywords": [],
   "author": "",
