@@ -6,6 +6,7 @@ import { Product } from './entities/product.entity';
 import { Inventory } from './entities/inventory.entity';
 import { Order } from './entities/order.entity';
 import { OrderItem } from './entities/orderItem.entity';
+import { queryCountLogger } from './query-count.logger';
 
 const port = Number(requiredEnv('DB_PORT'));
 
@@ -27,7 +28,8 @@ const dataSource = new DataSource({
   migrations: [`${__dirname}/migrations/*.js`],
 
   synchronize: false,
-  logging: false,
+  logging: ['query'],
+  logger: queryCountLogger,
 });
 
 export default dataSource;
