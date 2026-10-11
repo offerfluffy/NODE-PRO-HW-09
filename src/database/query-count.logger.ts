@@ -1,8 +1,4 @@
-import {
-  AbstractLogger,
-  LogLevel,
-  LogMessage,
-} from 'typeorm';
+import { AbstractLogger, LogLevel, LogMessage } from 'typeorm';
 
 export class QueryCountLogger extends AbstractLogger {
   count = 0;
