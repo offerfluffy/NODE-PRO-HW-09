@@ -252,3 +252,103 @@ for run in 1 2 3; do
   "EXPLAIN (ANALYZE, BUFFERS) $(cat db/queries/q4.sql)"
 done
 ```
+
+## 9. TypeORM data layer
+
+The PostgreSQL schema is represented by TypeORM entities in
+`src/database/entities`. Schema changes are applied through migrations;
+`synchronize` is explicitly disabled so application startup cannot modify the
+database schema implicitly.
+
+### Commands
+
+```bash
+npm run migrate
+npm run migrate:show
+npm run migrate:revert
+npm run seed
+npm run demo:nplus1
+npm run report
+```
+
+### Seed
+
+The seed is deterministic and idempotent. It checks for existing records before
+inserting them, and all seed operations run in one transaction. Running
+`npm run seed` repeatedly does not create duplicate rows.
+
+| Table         | Expected rows |
+| ------------- | ------------: |
+| `users`       |             8 |
+| `products`    |            10 |
+| `inventories` |            10 |
+| `orders`      |             6 |
+| `order_items` |            11 |
+
+The counts can be verified in PostgreSQL with:
+
+```sql
+SELECT 'users' AS table_name, count(*) FROM users
+UNION ALL SELECT 'products', count(*) FROM products
+UNION ALL SELECT 'inventories', count(*) FROM inventories
+UNION ALL SELECT 'orders', count(*) FROM orders
+UNION ALL SELECT 'order_items', count(*) FROM order_items
+ORDER BY table_name;
+```
+
+### N+1 demonstration
+
+`npm run demo:nplus1` loads the graph `order -> items -> product` twice and
+prints every generated SQL query.
+
+| Strategy                     | SQL queries |
+| ---------------------------- | ----------: |
+| Naive query inside a loop    |           7 |
+| Nested TypeORM `relations`   |           1 |
+
+The naive version performs one query for the list of six orders and one query
+per order. Its query count therefore grows with the number of orders. The fixed
+version loads both relation levels using joins, so its query count remains one.
+
+### Repository vs QueryBuilder
+
+Repository methods are used when the result is an entity or an entity graph,
+including ordinary filtering and relation loading. QueryBuilder is used when
+the result is a custom projection requiring joins, aggregation, or grouping,
+such as the revenue-per-seller report produced by `npm run report`.
+
+PostgreSQL returns the report's `COUNT` and integer `SUM` aggregates as
+`bigint`, so the `pg` driver exposes `orderCount` and `revenueCents` as strings.
+
+### Deletion rules
+
+`CASCADE` is used when the child has no meaning without its parent: inventory
+follows its product, and order items follow their order. `RESTRICT` protects
+business history: users referenced by products or orders cannot be removed, and
+products referenced by order items cannot be removed.
+
+## Grading
+
+The TypeORM commands use the local development PostgreSQL credentials from
+Docker Compose:
+
+```bash
+docker compose up -d --wait
+
+export DB_HOST=127.0.0.1
+export DB_PORT=21110
+export DB_USER=admin
+export DB_PASSWORD=admin_bootstrap
+export DB_NAME=shop
+
+npm ci
+npm run build
+npm run migrate
+npm run migrate:show
+npm run migrate:revert
+npm run migrate
+npm run seed
+npm run seed
+npm run demo:nplus1
+npm run report
+```
