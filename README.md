@@ -190,3 +190,65 @@ npx @redocly/cli bundle openapi/openapi.yaml -o spec.json
 printf '%s' 'app-v1-password' > secrets/db_password
 docker compose up -d
 ```
+
+## 8. PostgreSQL optimization homework
+
+Підняти PostgreSQL зі свіжого клону:
+
+```bash
+docker compose up -d --wait
+```
+
+Підключитися до PostgreSQL:
+
+```bash
+docker compose exec db psql -U admin -d shop
+```
+
+- Main table: `orders` (100,000 rows)
+- Search table: `products` (100,000 rows)
+
+### Повний цикл перевірки
+
+Очистити локальний volume, а потім виконати наведену вище команду підняття PostgreSQL:
+
+```bash
+docker compose down -v
+```
+
+Застосувати схему та згенерувати дані:
+
+```bash
+docker compose exec -T db psql -U admin -d shop -v ON_ERROR_STOP=1 < db/schema.sql
+docker compose exec -T db psql -U admin -d shop -v ON_ERROR_STOP=1 < db/seed.sql
+```
+
+Зняти плани до індексів:
+
+```bash
+for n in 1 2 3 4; do
+  docker compose exec -T db psql -U admin -d shop -c \
+  "EXPLAIN (ANALYZE, BUFFERS) $(cat db/queries/q${n}.sql)"
+done
+```
+
+Створити індекси та оновити статистику планера:
+
+```bash
+docker compose exec -T db psql -U admin -d shop -v ON_ERROR_STOP=1 < db/indexes.sql
+docker compose exec -T db psql -U admin -d shop -c "ANALYZE;"
+```
+
+Зняти плани після індексів:
+
+```bash
+for n in 1 2 3; do
+  docker compose exec -T db psql -U admin -d shop -c \
+  "EXPLAIN (ANALYZE, BUFFERS) $(cat db/queries/q${n}.sql)"
+done
+
+for run in 1 2 3; do
+  docker compose exec -T db psql -U admin -d shop -c \
+  "EXPLAIN (ANALYZE, BUFFERS) $(cat db/queries/q4.sql)"
+done
+```
