@@ -1,4 +1,12 @@
-import { Check, Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import {
+  Check,
+  Column,
+  CreateDateColumn,
+  Entity,
+  Index,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
 type OrderPostProcessingPayload = {
   orderId: string;
@@ -16,20 +24,20 @@ export class Job {
   })
   id!: string;
 
-  @Column({type: 'text'})
-  type!: string
+  @Column({ type: 'text' })
+  type!: string;
 
   @Column({ type: 'jsonb' })
   payload!: OrderPostProcessingPayload;
 
-  @Column({type: 'text', default: 'pending'})
-  status!: string
+  @Column({ type: 'text', default: 'pending' })
+  status!: string;
 
-  @Column({type: 'integer', default: 0})
-  processed!: number
+  @Column({ type: 'integer', default: 0 })
+  processed!: number;
 
-  @Column({type: 'text', nullable: true})
-  worker: string | null
+  @Column({ type: 'text', nullable: true })
+  worker: string | null;
 
   @CreateDateColumn({
     name: 'created_at',

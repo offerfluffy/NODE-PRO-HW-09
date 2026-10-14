@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddConcurrencySupport1791965248069
-  implements MigrationInterface
-{
+export class AddConcurrencySupport1791965248069 implements MigrationInterface {
   name = 'AddConcurrencySupport1791965248069';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
@@ -24,9 +22,7 @@ export class AddConcurrencySupport1791965248069
     await queryRunner.query(
       `ALTER TABLE "users" DROP CONSTRAINT "CHK_balance_cents_positive_or_zero"`,
     );
-    await queryRunner.query(
-      `ALTER TABLE "users" DROP COLUMN "balance_cents"`,
-    );
+    await queryRunner.query(`ALTER TABLE "users" DROP COLUMN "balance_cents"`);
     await queryRunner.query(`DROP TABLE "jobs"`);
   }
 }

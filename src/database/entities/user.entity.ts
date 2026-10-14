@@ -47,7 +47,7 @@ export class User {
   role!: UserRole;
 
   @Column({ type: 'integer', name: 'balance_cents', default: '0' })
-  balanceCents: number
+  balanceCents: number;
 
   @CreateDateColumn({
     name: 'created_at',
