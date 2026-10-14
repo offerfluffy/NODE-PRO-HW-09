@@ -15,7 +15,7 @@ CREATE TABLE
     seller_id bigint NOT NULL REFERENCES users (id),
     name text NOT NULL,
     description text NOT NULL,
-    price numeric(12, 2) NOT NULL CHECK (price > 0),
+    price_cents integer NOT NULL CHECK (price_cents > 0),
     status text NOT NULL CHECK (status IN ('draft', 'active', 'archived')),
     image_url text,
     created_at timestamptz NOT NULL DEFAULT now (),
@@ -41,7 +41,7 @@ CREATE TABLE
     status text NOT NULL CHECK (
       status IN ('pending', 'paid', 'cancelled', 'completed')
     ),
-    total_amount numeric(12, 2) NOT NULL CHECK (total_amount > 0),
+    total_amount_cents integer NOT NULL CHECK (total_amount_cents > 0),
     idempotency_key text NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now (),
     updated_at timestamptz NOT NULL DEFAULT now (),
@@ -54,7 +54,7 @@ CREATE TABLE
     order_id bigint NOT NULL REFERENCES orders (id),
     product_id bigint NOT NULL REFERENCES products (id),
     quantity integer NOT NULL CHECK (quantity > 0),
-    unit_price numeric(12, 2) NOT NULL CHECK (unit_price > 0),
+    unit_price_cents integer NOT NULL CHECK (unit_price_cents > 0),
     created_at timestamptz NOT NULL DEFAULT now (),
     UNIQUE (order_id, product_id)
   );
