@@ -19,6 +19,7 @@ export const enum UserRole {
 
 @Entity('users')
 @Check('CHK_users_role', `"role" IN ('customer', 'seller', 'admin')`)
+@Check('CHK_balance_cents_positive_or_zero', `"balance_cents" >= 0`)
 @Index('idx_users_email_lower', { synchronize: false })
 export class User {
   @PrimaryGeneratedColumn('identity', {
@@ -44,6 +45,9 @@ export class User {
 
   @Column({ type: 'text' })
   role!: UserRole;
+
+  @Column({ type: 'integer', name: 'balance_cents', default: '0' })
+  balanceCents: number
 
   @CreateDateColumn({
     name: 'created_at',

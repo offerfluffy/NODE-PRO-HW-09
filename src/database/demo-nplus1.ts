@@ -1,14 +1,21 @@
+import { DataSource } from 'typeorm';
 import dataSource from './data-source';
 import { Order } from './entities/order.entity';
 import { OrderItem } from './entities/orderItem.entity';
 import { queryCountLogger } from './query-count.logger';
 
+const demoDataSource = new DataSource({
+  ...dataSource.options,
+  logging: ['query'],
+  logger: queryCountLogger,
+});
+
 async function main(): Promise<void> {
-  await dataSource.initialize();
+  await demoDataSource.initialize();
 
   try {
-    const orderRepository = dataSource.getRepository(Order);
-    const orderItemRepository = dataSource.getRepository(OrderItem);
+    const orderRepository = demoDataSource.getRepository(Order);
+    const orderItemRepository = demoDataSource.getRepository(OrderItem);
 
     queryCountLogger.reset();
     queryCountLogger.echo = true;
@@ -67,7 +74,7 @@ async function main(): Promise<void> {
     console.log(`Result: ${naiveQueryCount} → ${fixedQueryCount}`);
   } finally {
     queryCountLogger.echo = false;
-    await dataSource.destroy();
+    await demoDataSource.destroy();
   }
 }
 
