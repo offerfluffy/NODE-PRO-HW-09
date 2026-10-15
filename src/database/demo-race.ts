@@ -6,6 +6,14 @@ import { User } from './entities/user.entity';
 type AttemptResult =
   { success: true; orderId: string } | { success: false; error: string };
 
+type StockRow = {
+  quantity_available: number;
+};
+
+type NegativeStockCountRow = {
+  count: number;
+};
+
 const ATTEMPTS = 50;
 const INITIAL_STOCK = 10;
 const RACE_KEY_PREFIX = 'race-';
@@ -116,9 +124,51 @@ async function runRaceDemo(): Promise<void> {
   const successful = results.filter((result) => result.success);
   const failed = results.filter((result) => !result.success);
 
+  const stockRows = await dataSource.query<StockRow[]>(
+    `
+      SELECT quantity_available
+      FROM inventories
+      WHERE product_id = $1
+    `,
+    [productId],
+  );
+
+  const negativeStockRows = await dataSource.query<NegativeStockCountRow[]>(
+    `
+      SELECT count(*)::integer AS count
+      FROM inventories
+      WHERE quantity_available < 0
+    `,
+  );
+
+  const stock = stockRows[0];
+  const negativeStock = negativeStockRows[0];
+
+  if (!stock) {
+    throw new Error('Race product inventory was not found');
+  }
+
+  if (!negativeStock) {
+    throw new Error('Negative-stock count was not returned');
+  }
+
+  const finalStock = stock.quantity_available;
+  const negativeStockCount = negativeStock.count;
+
   console.log(`Attempts: ${results.length}`);
   console.log(`Successful: ${successful.length}`);
   console.log(`Failed: ${failed.length}`);
+  console.log(`Final stock: ${finalStock}`);
+  console.log(`Negative-stock rows: ${negativeStockCount}`);
+
+  if (
+    results.length !== ATTEMPTS ||
+    successful.length !== INITIAL_STOCK ||
+    finalStock !== 0 ||
+    negativeStockCount !== 0
+  ) {
+    throw new Error('Race invariant failed');
+  }
 }
 
 async function main(): Promise<void> {
