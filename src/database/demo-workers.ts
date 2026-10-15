@@ -16,10 +16,6 @@ type WorkerStatsRow = {
   worker_count: number;
 };
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 const JOB_COUNT = 12;
 const WORKER_COUNT = 4;
 const WORK_MS = 100;
@@ -209,3 +205,7 @@ main().catch((error: unknown) => {
   console.error('Worker demo failed:', error);
   process.exitCode = 1;
 });
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
