@@ -8,6 +8,14 @@ type PendingCountRow = {
   count: number;
 };
 
+type WorkerStatsRow = {
+  total: number;
+  completed: number;
+  processed_twice: number;
+  processed_not_once: number;
+  worker_count: number;
+};
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -114,7 +122,7 @@ async function runWorker(workerName: string): Promise<number> {
   }
 }
 
-async function runWorkerPool(): Promise<void> {
+async function runWorkerPool(): Promise<number> {
   const workerNames = Array.from(
     { length: WORKER_COUNT },
     (_, index) => `worker-${index + 1}`,
@@ -134,6 +142,53 @@ async function runWorkerPool(): Promise<void> {
 
   console.log(`Distribution: ${distribution}`);
   console.log(`Elapsed time: ${elapsedMs} ms`);
+
+  return elapsedMs;
+}
+
+async function verifyWorkerResults(elapsedMs: number): Promise<void> {
+  const rows = await dataSource.query<WorkerStatsRow[]>(
+    `
+      SELECT
+        count(*)::integer AS total,
+        count(*) FILTER (
+          WHERE status = 'done'
+        )::integer AS completed,
+        count(*) FILTER (
+          WHERE processed > 1
+        )::integer AS processed_twice,
+        count(*) FILTER (
+          WHERE processed <> 1
+        )::integer AS processed_not_once,
+        count(DISTINCT worker)::integer AS worker_count
+      FROM jobs
+      WHERE type = $1
+    `,
+    [JOB_TYPE],
+  );
+
+  const stats = rows[0];
+
+  if (!stats) {
+    throw new Error('Worker statistics were not returned');
+  }
+
+  const sequentialMs = JOB_COUNT * WORK_MS;
+
+  console.log(`Completed: ${stats.completed}/${stats.total}`);
+  console.log(`Оброблено двічі: ${stats.processed_twice}`);
+  console.log(`Workers used: ${stats.worker_count}`);
+  console.log(`Sequential baseline: ${sequentialMs} ms`);
+
+  if (
+    stats.total !== JOB_COUNT ||
+    stats.completed !== JOB_COUNT ||
+    stats.processed_not_once !== 0 ||
+    stats.worker_count < 2 ||
+    elapsedMs >= sequentialMs
+  ) {
+    throw new Error('Worker-pool invariant failed');
+  }
 }
 
 async function main(): Promise<void> {
@@ -141,7 +196,8 @@ async function main(): Promise<void> {
 
   try {
     await prepareWorkerJobs();
-    await runWorkerPool();
+    const elapsedMs = await runWorkerPool();
+    await verifyWorkerResults(elapsedMs);
   } finally {
     if (dataSource.isInitialized) {
       await dataSource.destroy();
