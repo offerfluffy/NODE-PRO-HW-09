@@ -301,10 +301,10 @@ ORDER BY table_name;
 `npm run demo:nplus1` loads the graph `order -> items -> product` twice and
 prints every generated SQL query.
 
-| Strategy                     | SQL queries |
-| ---------------------------- | ----------: |
-| Naive query inside a loop    |           7 |
-| Nested TypeORM `relations`   |           1 |
+| Strategy                   | SQL queries |
+| -------------------------- | ----------: |
+| Naive query inside a loop  |           7 |
+| Nested TypeORM `relations` |           1 |
 
 The naive version performs one query for the list of six orders and one query
 per order. Its query count therefore grows with the number of orders. The fixed
@@ -326,6 +326,78 @@ PostgreSQL returns the report's `COUNT` and integer `SUM` aggregates as
 follows its product, and order items follow their order. `RESTRICT` protects
 business history: users referenced by products or orders cannot be removed, and
 products referenced by order items cannot be removed.
+
+## 10. Конкурентність
+
+Checkout виконує декремент залишку, списання балансу, створення замовлення,
+позиції замовлення та задачі на post-processing в одній транзакції. Якщо
+будь-який крок завершується помилкою, PostgreSQL відкочує всю операцію, тому
+частково створених замовлень не залишається.
+
+### Захист від oversell
+
+Для залишку використано атомарний умовний `UPDATE`: кількість зменшується лише
+коли `quantity_available >= requested quantity`, а `RETURNING` одразу показує,
+чи оновився рядок. PostgreSQL перевіряє умову і змінює рядок як одну операцію,
+тому між окремими читанням і записом немає вікна для гонки. Це простіше для
+одноразового декременту, ніж окремий `SELECT FOR UPDATE`, і не утримує блокування
+під час виконання додаткової логіки застосунку.
+
+Запуск `npm run demo:race` з початковим stock `10` дав:
+
+| Показник                | Результат |
+| ----------------------- | --------: |
+| Паралельні спроби       |        50 |
+| Успішні checkout        |        10 |
+| Відхилені checkout      |        40 |
+| Фінальний stock         |         0 |
+| Рядки з від'ємним stock |         0 |
+
+### Worker pool і `SKIP LOCKED`
+
+Чотири конкурентні воркери забирають задачі через `FOR UPDATE SKIP LOCKED`.
+Заблокований одним воркером рядок пропускається іншими, тому воркери не чекають
+один на одного і не обробляють ту саму задачу одночасно. Статус задачі та
+лічильник `processed` фіксуються в тій самій транзакції, що й її обробка.
+
+Запуск `npm run demo:workers` дав:
+
+| Показник             | Результат                        |
+| -------------------- | -------------------------------- |
+| Розподіл             | 3 задачі на кожного з 4 воркерів |
+| Завершено            | 12/12                            |
+| Оброблено двічі      | 0                                |
+| Загальний час        | 326 ms                           |
+| Послідовний орієнтир | 1200 ms                          |
+
+### Retry транзакцій
+
+Retry-обгортка повторює всю транзакцію з початку, включно з читаннями, і ловить
+лише PostgreSQL-коди `40001` (serialization failure) та `40P01` (deadlock).
+Ці помилки є тимчасовими наслідками конкурентного виконання, тому нова спроба
+може завершитися успішно. Помилки валідації, порушення constraints та помилки
+програмування повторювати не можна: retry не усуне їх причину і лише створить
+зайве навантаження. Між спробами використовується exponential backoff із
+jitter.
+
+Запуск `npm run demo:retry` дав:
+
+| Показник          |    Результат |
+| ----------------- | -----------: |
+| Спійманий код     |        40001 |
+| Кількість retry   |            1 |
+| Початковий баланс |        10000 |
+| Операції          | +5000, -3000 |
+| Фінальний баланс  |        12000 |
+| Очікуваний баланс |        12000 |
+
+Запуск демонстрацій:
+
+```bash
+npm run demo:race
+npm run demo:workers
+npm run demo:retry
+```
 
 ## Grading
 
@@ -351,4 +423,7 @@ npm run seed
 npm run seed
 npm run demo:nplus1
 npm run report
+npm run demo:race
+npm run demo:workers
+npm run demo:retry
 ```
