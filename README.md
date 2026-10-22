@@ -114,29 +114,32 @@ npx @redocly/cli bundle openapi/openapi.yaml -o spec.json
 | Змінна             | Обов'язкова | Приклад / дефолт                           | Призначення                                                                                                |
 | ------------------ | ----------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
 | `PORT`             | Так         | `21100`                                    | Порт HTTP-сервера: ціле число від 1 до 65535.                                                              |
-| `DB_URL`           | Так         | `postgres://app_user@127.0.0.1:21110/shop` | Адреса PostgreSQL із протоколом `postgres:`. Пароль зберігається в окремому файлі.                         |
+| `DB_URL`           | Так         | `postgres://app_user@127.0.0.1:21120/shop` | Адреса PgBouncer із протоколом `postgres:`. Пароль зберігається в окремому файлі.                          |
 | `DB_PASSWORD_FILE` | Так         | `secrets/db_password`                      | Шлях до непорожнього файла з паролем користувача БД. Відносний шлях рахується від робочої теки застосунку. |
 | `LOG_LEVEL`        | Ні          | Дефолт: `info`                             | Допустимі значення: `debug`, `info`, `warn`, `error`.                                                      |
 | `TIMEOUT_MS`       | Ні          | Дефолт: `5000`                             | Налаштування таймауту в мілісекундах: додатне ціле число.                                                  |
 
 ### Локальний запуск
 
-1. Встанови залежності та створи локальну конфігурацію:
+1. Встанови залежності, увійди в Infisical і створи локальний файл пароля:
 
    ```bash
    npm ci
-   cp .env.example .env
+   infisical login
    mkdir -p secrets
    printf '%s' 'app-v1-password' > secrets/db_password
    ```
 
-   Початковий пароль має збігатися з паролем `app_user` у `init.sql`. `.env` і `secrets/` ігноруються Git та виключені з Docker-образу; у репозиторії зберігається контракт `.env.example`.
+   Початковий пароль має збігатися з паролем `app_user` у `init.sql`.
+   `secrets/` і `.env` ігноруються Git та виключені з Docker-образу;
+   `.env.example` залишається публічним контрактом конфігурації. Основний
+   локальний шлях отримує змінні середовища `dev` з Infisical.
 
 2. Перевір відповідність `.env.example` схемі та запусти PostgreSQL:
 
    ```bash
    npm run check:env
-   docker compose up -d
+   docker compose up -d --wait
    ```
 
 3. Запусти API в цьому терміналі:
@@ -145,7 +148,9 @@ npx @redocly/cli bundle openapi/openapi.yaml -o spec.json
    npm run start
    ```
 
-   Команда збирає проєкт і запускає `dist/main.js`. Для розробки з автоматичним перезапуском є `npm run start:dev`.
+   Команда збирає проєкт, запускає його через
+   `scripts/with-secrets.sh dev` і отримує конфігурацію з Infisical. Для
+   розробки з автоматичним перезапуском є `npm run start:dev`.
 
 4. В іншому терміналі перевір API та з'єднання з БД:
 
@@ -399,13 +404,80 @@ npm run demo:workers
 npm run demo:retry
 ```
 
-## Grading
+## 11. Data layer ops
 
-The TypeORM commands use the local development PostgreSQL credentials from
-Docker Compose:
+### PgBouncer transaction mode
+
+PgBouncer uses transaction mode so that many application clients can share a
+small pool of real PostgreSQL connections. A server connection is assigned only
+for the duration of a transaction, so the next transaction may run on a
+different connection. As a result, session-level `SET` values,
+`LISTEN`/`NOTIFY` subscriptions, and session advisory locks cannot be expected
+to survive between transactions. Named prepared statements also require
+PgBouncer's `max_prepared_statements` support, which is enabled in this project.
+
+### Start the data layer
+
+Start PostgreSQL and PgBouncer and wait for both health checks:
 
 ```bash
 docker compose up -d --wait
+```
+
+The application connects through PgBouncer on host port `21120`; PostgreSQL's
+direct development port `21110` remains available for administrative TypeORM
+operations. A host-side connectivity check is:
+
+```bash
+PGPASSWORD=app-v1-password psql \
+  -h 127.0.0.1 -p 21120 -U app_user -d shop \
+  -c "SELECT 1 AS result, current_user;"
+```
+
+### Backup
+
+The normal development path injects `DATABASE_URL` from the Infisical `dev`
+environment. The script creates a dated custom-format PostgreSQL archive under
+`backups/` and prints its path:
+
+```bash
+bash scripts/with-secrets.sh dev bash scripts/backup.sh
+```
+
+The archive can be inspected with:
+
+```bash
+pg_restore --list backups/<printed-file-name>.dump
+```
+
+`backup.cron` runs the same backup command every night at 02:00.
+
+### Restore drill
+
+The drill selects the newest dump, creates a new empty PostgreSQL container and
+volume, restores the archive, and compares the `orders` row count and total
+amount with the source database. It prints `MATCH` on success and removes the
+temporary container and volume on exit, so a second run starts clean:
+
+```bash
+bash scripts/with-secrets.sh dev bash scripts/restore-drill.sh
+```
+
+The measured drill result and the RTO/RPO calculation are recorded in
+`RESTORE-DRILL.md`.
+
+## Grading
+
+The grader has no access to Infisical. `SKIP_VAULT=1` tells the same wrapper to
+use the variables exported from the local Docker Compose development
+credentials instead. `DATABASE_URL` goes through PgBouncer; the `DB_*`
+variables are used by the TypeORM commands:
+
+```bash
+docker compose up -d --wait
+
+export DATABASE_URL=postgres://admin:admin_bootstrap@127.0.0.1:21120/shop
+export SKIP_VAULT=1
 
 export DB_HOST=127.0.0.1
 export DB_PORT=21110
@@ -426,4 +498,7 @@ npm run report
 npm run demo:race
 npm run demo:workers
 npm run demo:retry
+
+bash scripts/with-secrets.sh dev bash scripts/backup.sh
+bash scripts/with-secrets.sh dev bash scripts/restore-drill.sh
 ```
