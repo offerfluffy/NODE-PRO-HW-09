@@ -4,3 +4,4 @@ spec.json
 secrets/
 dist
 tsconfig.build.tsbuildinfo
+backups/
