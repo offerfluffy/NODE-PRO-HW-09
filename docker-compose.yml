@@ -34,3 +34,21 @@ services:
       interval: 2s
       timeout: 3s
       retries: 15
+  restore:
+    image: postgres:16-alpine
+    profiles:
+      - drill
+    environment:
+      POSTGRES_USER: restore_admin
+      POSTGRES_PASSWORD: restore_password
+      POSTGRES_DB: shop_restore
+    volumes:
+      - restore_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U restore_admin -d shop_restore']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+volumes:
+  restore_data:
+    name: marketplace-api-restore-drill-data
