@@ -399,6 +399,18 @@ npm run demo:workers
 npm run demo:retry
 ```
 
+## 11. Data layer ops
+
+### PgBouncer transaction mode
+
+PgBouncer uses transaction mode so that many application clients can share a
+small pool of real PostgreSQL connections. A server connection is assigned only
+for the duration of a transaction, so the next transaction may run on a
+different connection. As a result, session-level `SET` values,
+`LISTEN`/`NOTIFY` subscriptions, and session advisory locks cannot be expected
+to survive between transactions. Named prepared statements also require
+PgBouncer's `max_prepared_statements` support, which is enabled in this project.
+
 ## Grading
 
 The TypeORM commands use the local development PostgreSQL credentials from
